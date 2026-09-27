@@ -164,38 +164,93 @@ async function simpleDoc(title, sections, filename){
  pdfMake.createPdf(dd).download(filename);
  $("status").textContent=title+" сформирован.";
 }
+
 async function make10(){
- let d=await PDFLib.PDFDocument.load(b64(BL.B10)),p=d.getPages()[0],font=await d.embedFont(PDFLib.StandardFonts.Helvetica),dt=dateParts();
- // Template 10: preserve original letter layout; replace only applicant name/date.
- p.drawText(person(),{x:255,y:720,size:27,font});
- p.drawText(`${v("city")}, ${dt.d} de ${dt.mon.toLowerCase()} de ${dt.y}`,{x:255,y:655,size:25,font});
+ const d=await PDFLib.PDFDocument.create(),p=d.addPage([595.28,841.89]);
+ const f=await d.embedFont(PDFLib.StandardFonts.TimesRoman),fb=await d.embedFont(PDFLib.StandardFonts.TimesRomanBold);
+ const dt=dateParts(), name=person();
+ const line=(text,x,y,size=11,font=f)=>p.drawText(text,{x,y,size,font});
+ const para=(text,x,y,w,size=11,lead=15,font=f)=>{let words=text.split(/\s+/),cur="",yy=y;for(const word of words){let test=(cur+" "+word).trim();if(font.widthOfTextAtSize(test,size)>w){line(cur,x,yy,size,font);yy-=lead;cur=word}else cur=test}if(cur)line(cur,x,yy,size,font);return yy-lead};
+ line("COMPROMISO DE AFILIACIÓN A LA SEGURIDAD SOCIAL",157,760,12,fb);
+ line("Estimados señores,",92,705,11,f);
+ let y=655;
+ y=para("Por medio de la presente me dirijo a ustedes con el fin de informar sobre el compromiso de afiliación a la Seguridad Social en el marco de la actividad profesional como trabajador autónomo en modalidad de teletrabajo internacional.",92,y,415,11,15,f)-8;
+ y=para("De conformidad con la normativa vigente, en el caso de una relación profesional en la que un trabajador autónomo presta servicios a una empresa extranjera, el alta en la Seguridad Social puede efectuarse una vez obtenida la correspondiente autorización de residencia, mediante la inscripción en el Régimen Especial de Trabajadores Autónomos (RETA).",92,y,415,11,15,f)-8;
+ y=para(`En este sentido, informo que el Sr./Sra. ${name} se dará de alta en el RETA inmediatamente después de la obtención de la resolución favorable de residencia, cumpliendo así con todas las obligaciones fiscales y de cotización previstas en la legislación española.`,92,y,415,11,15,f)-8;
+ y=para("Se ruega tengan en consideración la presente comunicación a efectos de la tramitación del expediente.",92,y,415,11,15,f)-25;
+ line("Quedo a su disposición para cualquier aclaración adicional que estimen necesaria.",92,y,11,f); y-=48;
+ line("Atentamente,",92,y,11,f); y-=48;
+ line(name,92,y,11,fb); y-=22;
+ line(`${v("city")[0]+v("city").slice(1).toLowerCase()}, ${dt.d} de ${dt.mon.toLowerCase()} de ${dt.y}`,92,y,11,f); y-=48;
+ line("Firma:",92,y,11,f); p.drawLine({start:{x:135,y:y-2},end:{x:270,y:y-2},thickness:.6});
  dl(await d.save(),`10_SEGURIDAD_SOCIAL_${v("surname")}.pdf`);
- $("status").textContent="Форма 10 сформирована на исходном шаблоне.";
+ $("status").textContent="Форма 10 сформирована как настоящий векторный PDF.";
 }
+
 async function make12(){
- let d=await PDFLib.PDFDocument.load(b64(BL.B12)),p=d.getPages()[0],font=await d.embedFont(PDFLib.StandardFonts.Helvetica),bd=dobParts(),dt=dateParts();
- let put=(t,x,y,z=25)=>p.drawText(String(t||""),{x,y,size:z,font});
- put(`${v("given")} ${v("surname")}`,495,2055); put(v("nat"),495,1990);
- put(bd.d,495,1925); put(bd.m,590,1925); put(bd.y,700,1925);
- put(v("pass"),495,1858); put(v("street"),495,1792); put(v("zip"),495,1727);
- put(v("city"),495,1662); put(v("prov"),495,1597);
- put(v("city"),265,1080); put(dt.d,565,1080); put(dt.mon[0]+dt.mon.slice(1).toLowerCase(),745,1080); put(dt.y,1000,1080);
+ const d=await PDFLib.PDFDocument.create(),p=d.addPage([595.28,841.89]);
+ const f=await d.embedFont(PDFLib.StandardFonts.TimesRoman),fb=await d.embedFont(PDFLib.StandardFonts.TimesRomanBold);
+ const dt=dateParts(),bd=dobParts();
+ const text=(t,x,y,z=11,font=f)=>p.drawText(String(t||""),{x,y,size:z,font});
+ const field=(label,val,y)=>{text(label,66,y,11,f);text(val,176,y,10.5,f);p.drawLine({start:{x:174,y:y-3},end:{x:440,y:y-3},thickness:.45})};
+ text("Declaración responsable de carecer de antecedentes penales",66,770,12,fb);
+ field("Nombre y apellidos:",`${v("given")} ${v("surname")}`,725);
+ field("Nacionalidad:",v("nat"),700);
+ text("Fecha de nacimiento:",66,675); text(bd.d,176,675,10.5); text("/",210,675); text(bd.m,225,675,10.5); text("/",260,675); text(bd.y,275,675,10.5); p.drawLine({start:{x:174,y:672},end:{x:330,y:672},thickness:.45});
+ field("DNI/NIE/Pasaporte:",v("pass"),650);
+ field("Domicilio:",v("street"),625);
+ field("C.P.:",v("zip"),600);
+ field("Localidad:",v("city"),575);
+ field("Provincia:",v("prov"),550);
+ text("DECLARO",66,495,11,fb); text("por la presente, conforme a lo establecido en el artículo 8.5 de la ley 45/2015 QUE",126,495,10.5,f);
+ text("DURANTE LOS ÚLTIMOS CINCO AÑOS, CAREZCO DE ANTECEDENTES PENALES NO",66,468,10.5,fb);
+ text("CANCELADOS",66,441,10.5,fb); text("por cualquier delito previsto en el ordenamiento jurídico español.",142,441,10.5,f);
+ text("Esta declaración se basa en mi conocimiento personal y es cierta a mi leal saber y entender.",66,414,10.5,f);
+ text("En",66,340); text(v("city")[0]+v("city").slice(1).toLowerCase(),98,340,10.5); text("a",215,340);text(dt.d,235,340);text("de",265,340);text(dt.mon[0]+dt.mon.slice(1).toLowerCase(),292,340);text("de",382,340);text(dt.y,408,340);
+ p.drawLine({start:{x:92,y:336},end:{x:455,y:336},thickness:.45,dashArray:[1,3]});
+ text("Firma:",66,290);p.drawLine({start:{x:110,y:287},end:{x:260,y:287},thickness:.45});
  dl(await d.save(),`12_ANTECEDENTES_${v("surname")}.pdf`);
- $("status").textContent="Форма 12 сформирована на исходном шаблоне.";
+ $("status").textContent="Форма 12 сформирована как настоящий векторный PDF.";
 }
+
 async function make14(){
- let d=await PDFLib.PDFDocument.load(b64(BL.B14)),p=d.getPages()[0],font=await d.embedFont(PDFLib.StandardFonts.Helvetica),bd=dobParts(),dt=dateParts();
- let put=(t,x,y,z=7.5)=>p.drawText(String(t||""),{x,y,size:z,font});
- put(v("given"),110,651);put(v("surname"),245,651);put(v("nat"),110,633);put(v("pass"),405,633);
- put(bd.d,115,615);put(bd.m,160,615);put(bd.y,205,615);put(v("city"),330,615);put("ESPANA",460,615);
- put(v("father"),115,597);put(v("mother"),300,597);put(v("street"),145,580);put(v("num"),470,580);put(v("floor"),525,580);
- put(v("city"),105,563);put(v("zip"),295,563);put(v("prov"),405,563);put(v("phone"),105,547);put(v("email"),320,547);
- // civil status marker
- let cx={"Soltera":454,"Soltero":454,"Casada":474,"Casado":474,"Viuda":494,"Viudo":494,"Divorciada":514,"Divorciado":514}[v("civil")]; if(cx) put("X",cx,597,8);
- put(v("rnie"),105,410);put(v("rgiv"),105,393);put(v("rsur"),245,393);put(v("rphone"),105,343);put(v("remail"),320,343);
- put(v("city"),230,306);put(dt.d,330,306);put(dt.mon.toLowerCase(),370,306);put(dt.y,475,306);
- dl(await d.save(),`14_REPRESENTANTE_${v("surname")}.pdf`);$("status").textContent="Форма 14 сформирована на очищенном исходном шаблоне.";
+ const d=await PDFLib.PDFDocument.create(),p=d.addPage([595.28,841.89]);
+ const f=await d.embedFont(PDFLib.StandardFonts.Helvetica),fb=await d.embedFont(PDFLib.StandardFonts.HelveticaBold);
+ const dt=dateParts(),bd=dobParts();
+ const tx=(t,x,y,z=7,font=f)=>p.drawText(String(t||""),{x,y,size:z,font});
+ const ln=(x1,y1,x2,y2)=>p.drawLine({start:{x:x1,y:y1},end:{x:x2,y:y2},thickness:.45});
+ const fld=(lab,val,x,y,w=150)=>{tx(lab,x,y,6.5);tx(val,x+72,y,7);ln(x+70,y-2,x+w,y-2)};
+ tx("GOBIERNO DE ESPAÑA",35,790,10,fb);
+ tx("DOCUMENTO DE DESIGNACIÓN DE REPRESENTANTE",158,748,11,fb);
+ tx("(RD 240/2007 y RD 557/2011)",213,734,9,fb);
+ fld("Nombre",v("given"),30,690,185); fld("1er Apellido",v("surname"),220,690,190); fld("2º Apellido","",414,690,150);
+ fld("Nacionalidad",v("nat"),30,670,150); fld("NIE","",185,670,115); fld("Pasaporte Nº",v("pass"),305,670,260);
+ tx("Fecha de nacimiento(1)",30,650,6.5);tx(bd.d,135,650);tx("/",155,650);tx(bd.m,165,650);tx("/",185,650);tx(bd.y,195,650);
+ fld("Localidad",v("pob"),245,650,170);fld("País","",420,650,145);
+ fld("Nombre del padre",v("father"),30,630,180);fld("Nombre de la madre",v("mother"),215,630,190);
+ tx("Estado civil(2)",410,630,6.5);
+ let opts=[["S",490],["C",510],["V",530],["D",550],["Sp",570]];opts.forEach(([q,x])=>{tx(q,x-8,630,6);p.drawRectangle({x,y:626,width:10,height:10,borderWidth:.5})});
+ let ci={"Soltera":490,"Soltero":490,"Casada":510,"Casado":510,"Viuda":530,"Viudo":530,"Divorciada":550,"Divorciado":550}[v("civil")];if(ci)tx("X",ci+1,628,7,fb);
+ fld("Domicilio en España",v("street"),30,608,385);fld("Nº",v("num"),420,608,70);fld("Piso",v("floor"),495,608,70);
+ fld("Localidad",v("city"),30,588,180);fld("C.P.",v("zip"),215,588,120);fld("Provincia",v("prov"),340,588,225);
+ fld("Teléfono",v("phone"),30,568,220);fld("E-mail",v("email"),255,568,310);
+ let body="A los efectos de los artículos 5 y 66 de la Ley 39/2015, de 1 de octubre, del Procedimiento Administrativo Común de las Administraciones Públicas, y de acuerdo con lo establecido en la Disposición Adicional Octava del Real Decreto 557/2011, de 20 de abril y en el artículo 11 del Real Decreto 240/2007, de 16 de febrero, DESIGNO a la persona cuyos datos constan a continuación como representante para que formule en mi nombre la solicitud y le autorizo a presentar y firmar cuantos documentos sean reglamentariamente exigibles así como a intervenir en cuantos trámites y diligencias requiera el procedimiento, salvo aquéllas en que sea necesaria mi comparecencia personal.";
+ let words=body.split(/\s+/),cur="",yy=525;for(let w of words){let t=(cur+" "+w).trim();if(f.widthOfTextAtSize(t,7)>535){tx(cur,30,yy,7);yy-=11;cur=w}else cur=t}if(cur)tx(cur,30,yy,7);
+ fld("DNI/NIF/NIE",v("rnie"),30,420,190);fld("Razón Social","",225,420,340);
+ fld("Nombre",v("rgiv"),30,400,185);fld("1er Apellido",v("rsur"),220,400,190);fld("2º Apellido","",414,400,150);
+ fld("Domicilio en España","",30,380,385);fld("Nº","",420,380,70);fld("Piso","",495,380,70);
+ fld("Localidad",v("city"),30,360,180);fld("C.P.",v("zip"),215,360,120);fld("Provincia",v("prov"),340,360,225);
+ fld("Teléfono",v("rphone"),30,340,220);fld("E-mail",v("remail"),255,340,310);
+ tx("En",190,292);tx(v("city"),210,292);tx("a",300,292);tx(dt.d,315,292);tx("de",335,292);tx(dt.mon.toLowerCase(),355,292);tx("de",430,292);tx(dt.y,450,292);
+ p.drawRectangle({x:225,y:205,width:150,height:65,borderWidth:.6});tx("FIRMA",287,257,7);
+ tx("RELLENAR EN MAYÚSCULAS CON BOLÍGRAFO NEGRO Y LETRA DE IMPRENTA O A MÁQUINA. IMPRESO GRATUITO. PROHIBIDA SU VENTA.",80,165,6,fb);
+ tx("SE PRESENTARÁ ORIGINAL Y COPIA",235,154,6,fb);
+ tx("(1) Rellenar utilizando 2 dígitos para el día, 2 para el mes y 4 para el año, en este orden (dd/mm/aaaa)",40,120,6);
+ tx("(2) Marque el cuadro que proceda. Soltero / Casado / Viudo / Divorciado / Separado",40,105,6);
+ dl(await d.save(),`14_REPRESENTANTE_${v("surname")}.pdf`);
+ $("status").textContent="Форма 14 сформирована как чистый векторный PDF.";
 }
+
 async function makeContract(){
  let dt=dateParts(), cd=v("contractdate")||v("date"), no=v("contractno")||"S/N";
  await simpleDoc(`CONTRATO DE PRESTACION DE SERVICIOS Nº ${no}`,[
