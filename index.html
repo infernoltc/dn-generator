@@ -43,15 +43,28 @@ input[type=file]{display:none}.upload{display:block;text-align:center;padding:15
 
 <div class="c"><h2>4. Для MI-F</h2><div class="g">
 <div class="full"><label>Основной заявитель (ФИО)</label><input id="holder" value=""></div>
-<div><label>Паспорт основного заявителя</label><input id="holderpass"></div><div><label>REGAGE / expediente</label><input id="regage"></div>
+<div><label>Паспорт основного заявителя</label><input id="holderpass"></div><div><label>REGAGE / expediente</label><input id="regage"></div><div class="full"><label>Родство с основным заявителем</label>
+<select id="relation"><option value="conyuge" selected>Cónyuge</option><option value="pareja">Pareja</option><option value="hijo_menor">Hijo &lt;18 años</option><option value="hijo_dependiente">Hijo &gt;18 años dependiente</option><option value="ascendiente">Ascendiente a cargo</option></select></div>
 </div></div>
 
-<div class="c"><h2>5. Документы</h2><div class="docs">
+<div class="c"><h2>5. Компания и работа</h2><div class="g">
+<div class="full"><label>Компания / заказчик</label><input id="company" placeholder="ООО / SL / LTD / Company name"></div>
+<div><label>Регистрационный / налоговый номер</label><input id="companyid"></div>
+<div><label>Директор / представитель компании</label><input id="director"></div>
+<div class="full"><label>Адрес компании</label><input id="companyaddr"></div>
+<div><label>Должность / специализация</label><input id="role" value="Especialista en marketing y relaciones publicas"></div>
+<div><label>Оплата в месяц</label><input id="salary" placeholder="450000 RUB / 4570 EUR"></div>
+<div><label>Номер договора</label><input id="contractno"></div>
+<div><label>Дата договора</label><input id="contractdate" type="date"></div>
+<div class="full"><label>Услуги / обязанности</label><textarea id="duties">Marketing digital, publicidad, relaciones publicas, preparacion de materiales, coordinacion de campanas, comunicacion con clientes y analisis de resultados.</textarea></div>
+</div></div>
+
+<div class="c"><h2>6. Документы</h2><div class="docs">
 <button class="btn" onclick="makeMIT()">MI-T</button><button class="btn" onclick="makeMIF()">MI-F</button>
-<button class="btn sec" onclick="makeLetter('F10')">Форма 10</button><button class="btn sec" onclick="makeLetter('F12')">Форма 12</button>
-<button class="btn sec" onclick="make14()">Форма 14</button><button class="btn sec" onclick="makeTextPDF('Договор DN')">Договор DN</button>
-<button class="btn sec" onclick="makeTextPDF('Справка DN')">Справка DN</button><button class="btn sec" onclick="makeTextPDF('Invoice')">Invoice</button>
-<button class="btn sec" onclick="makeTextPDF('CV')">CV</button>
+<button class="btn sec" onclick="make10()">Форма 10</button><button class="btn sec" onclick="make12()">Форма 12</button>
+<button class="btn sec" onclick="make14()">Форма 14</button><button class="btn sec" onclick="makeContract()">Договор DN</button>
+<button class="btn sec" onclick="makeCertificate()">Справка DN</button><button class="btn sec" onclick="makeInvoice()">Invoice</button>
+<button class="btn sec" onclick="makeCV()">CV</button><button class="btn sec" onclick="open790()">Modelo 790-038</button>
 </div><div id="status" class="st">Готово к формированию.</div></div>
 </div>
 <script>
@@ -69,7 +82,12 @@ async function onePage(doc){let out=await PDFLib.PDFDocument.create();let [p]=aw
 async function makeMIT(){
  let d=await PDFLib.PDFDocument.load(b64(T.MIT)),f=d.getForm(),bd=dobParts(),dt=dateParts();
  [["Texto39",v("pass")],["Texto43",v("surname")],["Texto44",v("given")],["Texto45",v("pob")],["Texto46",bd.d],["Texto47",bd.m],["Texto48",bd.y],["Texto49",v("pob")],["Texto50",v("nat")],["Texto51",v("father")],["Texto52",v("mother")],["Texto53",v("street")],["Texto54",v("num")],["Texto55",v("floor")],["Texto56",v("city")],["Texto57",v("zip")],["Texto58",v("prov")],["Texto60",v("phone")],["Texto61",v("email")],["Texto78",v("rsur")],["Texto79",v("rgiv")],["Texto80",v("rphone")],["Texto81",v("remail")],["Texto82",v("rnie")],["Texto84",v("city")],["Texto85",dt.d],["Texto86",dt.mon],["Texto87",dt.y]].forEach(x=>setText(f,...x));
- ["Casilla de verificación16","Casilla de verificación28","Casilla de verificación29","Casilla de verificación38","Casilla de verificación41"].forEach(x=>check(f,x));
+ ["Casilla de verificación16","Casilla de verificación38","Casilla de verificación41"].forEach(x=>check(f,x));
+ // MI-T: sexo 27 Hombre / 28 Mujer
+ check(f, v("sex")==="M" ? "Casilla de verificación27" : "Casilla de verificación28");
+ // MI-T: estado civil 29 S / 30 C / 31 V / 32 D / 33 Sp / 34 Uh
+ let mc={"Soltera":29,"Soltero":29,"Casada":30,"Casado":30,"Viuda":31,"Viudo":31,"Divorciada":32,"Divorciado":32};
+ if(mc[v("civil")]) check(f,"Casilla de verificación"+mc[v("civil")]);
  let o=await onePage(d);dl(await o.save(),`MI-T_${v("surname")}_${v("given")}.pdf`);$("status").textContent="MI-T сформирован из текущих полей.";
 }
 async function makeMIF(){
@@ -93,8 +111,9 @@ async function makeMIF(){
  let civ={"Soltera":23,"Soltero":23,"Casada":24,"Casado":24,"Viuda":25,"Viudo":25,"Divorciada":26,"Divorciado":26};
  if(civ[v("civil")]) check(f,"Casilla de verificación"+civ[v("civil")]);
 
- // Vínculo: Cónyuge.
- check(f,"Casilla de verificación29");
+ // Vínculo familiar: 29 Cónyuge / 30 Pareja / 31 Hijo <18 / 32 Hijo >18 dependiente / 33 Ascendiente
+ let rel={conyuge:29,pareja:30,hijo_menor:31,hijo_dependiente:32,ascendiente:33};
+ check(f,"Casilla de verificación"+rel[v("relation")]);
 
  let o=await onePage(d), pg=o.getPages()[0], font=await o.embedFont(PDFLib.StandardFonts.Helvetica);
  let put=(t,x,y,size=7.4)=>pg.drawText(String(t||""),{x,y,size,font});
@@ -111,7 +130,40 @@ async function makeMIF(){
  dl(await o.save(),`MI-F_${v("surname")}_${v("given")}.pdf`);
  $("status").textContent="MI-F сформирован: адрес, город, индекс, провинция и пол заполнены из карточки клиента.";
 }
-async function makeLetter(k){let d=await PDFLib.PDFDocument.load(b64(T[k]));dl(await d.save(),`${k}_${v("surname")}.pdf`);$("status").textContent=k+" скачан на исходном бланке. Динамическое нанесение полей подключено для MI-T/MI-F и формы 14."}
+
+function person(){return `${v("surname")} ${v("given")}`}
+function addr(){return `${v("street")}, Nº ${v("num")}${v("floor")?", Piso "+v("floor"):""}, ${v("zip")} ${v("city")}, ${v("prov")}`}
+function addTextPage(doc,title,subtitle=""){
+ let p=doc.addPage([595,842]); return {p,title,subtitle};
+}
+function wrap(text,max=88){let words=String(text||"").split(/\s+/),out=[],line="";for(let w of words){if((line+" "+w).trim().length>max){out.push(line);line=w}else line=(line+" "+w).trim()}if(line)out.push(line);return out}
+async function simpleDoc(title, sections, filename){
+ let d=await PDFLib.PDFDocument.create(),p=d.addPage([595,842]),font=await d.embedFont(PDFLib.StandardFonts.Helvetica),bold=await d.embedFont(PDFLib.StandardFonts.HelveticaBold);
+ p.drawText(title,{x:48,y:785,size:16,font:bold});let y=750;
+ for(let sec of sections){if(sec.h){p.drawText(sec.h,{x:48,y,size:11,font:bold});y-=20}
+  for(let line of wrap(sec.t,92)){if(y<55){p=d.addPage([595,842]);y=790}p.drawText(line,{x:48,y,size:10,font});y-=15}y-=8}
+ dl(await d.save(),filename);$("status").textContent=title+" сформирован из текущих данных.";
+}
+async function make10(){
+ let dt=dateParts();
+ await simpleDoc("COMPROMISO DE AFILIACION A LA SEGURIDAD SOCIAL",[
+ {t:`Yo, ${person()}, de nacionalidad ${v("nat")}, con pasaporte ${v("pass")}, y domicilio en ${addr()},`},
+ {t:"MANIFIESTO mi compromiso de proceder al alta y afiliacion en el sistema de la Seguridad Social espanola, en el Regimen Especial de Trabajadores Autonomos (RETA), una vez concedida la autorizacion de residencia para teletrabajo de caracter internacional y cuando corresponda legalmente el inicio de la actividad."},
+ {t:"Asimismo, me comprometo a mantener el cumplimiento de las obligaciones de Seguridad Social durante la vigencia de la autorizacion."},
+ {t:`En ${v("city")}, a ${dt.d} de ${dt.mon.toLowerCase()} de ${dt.y}.`},
+ {t:"Firma del interesado:"}
+ ],`10_SEGURIDAD_SOCIAL_${v("surname")}.pdf`);
+}
+async function make12(){
+ let dt=dateParts();
+ await simpleDoc("DECLARACION RESPONSABLE DE CARECER DE ANTECEDENTES PENALES",[
+ {t:`Nombre y apellidos: ${person()} | Nacionalidad: ${v("nat")} | Fecha de nacimiento: ${v("dob")} | Pasaporte: ${v("pass")}`},
+ {t:`Domicilio: ${addr()}`},
+ {t:"DECLARO por la presente que durante los ultimos cinco anos carezco de antecedentes penales no cancelados por delitos previstos en el ordenamiento juridico espanol. Esta declaracion se basa en mi conocimiento personal y es cierta a mi leal saber y entender."},
+ {t:`En ${v("city")}, a ${dt.d} de ${dt.mon.toLowerCase()} de ${dt.y}.`},
+ {t:"Firma del interesado:"}
+ ],`12_ANTECEDENTES_${v("surname")}.pdf`);
+}
 async function make14(){
  let d=await PDFLib.PDFDocument.load(b64(T.F14)),p=d.getPages()[0],font=await d.embedFont(PDFLib.StandardFonts.Helvetica),bd=dobParts(),dt=dateParts();
  let put=(t,x,y,s=8)=>p.drawText(t||"",{x,y,size:s,font});
@@ -120,12 +172,50 @@ async function make14(){
  put(v("phone"),115,575);put(v("email"),315,575);put(v("rsur")+" "+v("rgiv"),120,355);put(v("rnie"),355,335);put(v("rphone"),120,315);put(v("remail"),320,315);
  put(`${dt.d}/${dt.m}/${dt.y}`,400,255);dl(await d.save(),`14_REPRESENTANTE_${v("surname")}.pdf`);$("status").textContent="Форма 14 сформирована.";
 }
-async function makeTextPDF(kind){
- let d=await PDFLib.PDFDocument.create(),p=d.addPage([595,842]),font=await d.embedFont(PDFLib.StandardFonts.Helvetica),bold=await d.embedFont(PDFLib.StandardFonts.HelveticaBold);
- p.drawText(kind,{x:50,y:780,size:20,font:bold});p.drawText(`${v("surname")} ${v("given")}`,{x:50,y:740,size:13,font:bold});
- let lines=[`Passport: ${v("pass")}`,`Nationality: ${v("nat")}`,`Date of birth: ${v("dob")}`,`Address: ${v("street")}, ${v("num")}, Piso ${v("floor")}, ${v("zip")} ${v("city")}`,`Phone: ${v("phone")}`,`Email: ${v("email")}`,`Document date: ${v("date")}`];
- lines.forEach((x,i)=>p.drawText(x,{x:50,y:705-i*25,size:11,font}));dl(await d.save(),`${kind.replaceAll(" ","_")}_${v("surname")}.pdf`);$("status").textContent=kind+" сформирован.";
+
+async function makeContract(){
+ let dt=dateParts(), cd=v("contractdate")||v("date"), no=v("contractno")||"S/N";
+ await simpleDoc(`CONTRATO DE PRESTACION DE SERVICIOS Nº ${no}`,[
+ {h:"PARTES",t:`De una parte, ${v("company")||"[EMPRESA]"}, identificacion ${v("companyid")||"[ID]"}, con domicilio en ${v("companyaddr")||"[DIRECCION]"}, representada por ${v("director")||"[REPRESENTANTE]"}. De otra parte, ${person()}, pasaporte ${v("pass")}, con domicilio en ${addr()}.`},
+ {h:"OBJETO",t:`El profesional prestara servicios como ${v("role")}. Funciones: ${v("duties")}`},
+ {h:"MODALIDAD",t:"Los servicios se prestaran a distancia mediante medios informaticos y de telecomunicaciones. La actividad puede desarrollarse desde Espana y desde otros paises, sin necesidad de presencia habitual en las instalaciones de la empresa."},
+ {h:"REMUNERACION",t:`La remuneracion acordada es de ${v("salary")||"[IMPORTE]"} al mes, contra la documentacion de cobro que corresponda.`},
+ {h:"DURACION",t:`El contrato entra en vigor el ${cd} y se concierta con caracter indefinido, salvo terminacion conforme a las condiciones acordadas por las partes.`},
+ {h:"INDEPENDENCIA",t:"La prestacion se realiza con autonomia organizativa y profesional, sin perjuicio de la coordinacion necesaria para la correcta ejecucion de los servicios."},
+ {h:"FIRMA",t:`Firmado en ${v("city")}, el ${dt.d}/${dt.m}/${dt.y}. EMPRESA: ${v("director")||"________________"}   PROFESIONAL: ${person()}`}
+ ],`CONTRATO_DN_${v("surname")}.pdf`);
 }
+async function makeCertificate(){
+ let dt=dateParts();
+ await simpleDoc("CERTIFICADO DE RELACION PROFESIONAL Y TRABAJO A DISTANCIA",[
+ {t:`${v("company")||"[EMPRESA]"}, identificacion ${v("companyid")||"[ID]"}, certifica que ${person()}, pasaporte ${v("pass")}, mantiene una relacion profesional vigente con la entidad.`},
+ {t:`La relacion se formaliza mediante el contrato Nº ${v("contractno")||"S/N"} de fecha ${v("contractdate")||"[FECHA]"}, para prestar servicios como ${v("role")}.`},
+ {t:`Funciones principales: ${v("duties")}`},
+ {t:"La prestacion se realiza de forma remota mediante medios informaticos y de telecomunicaciones. La empresa autoriza expresamente que los servicios se desarrollen desde Espana."},
+ {t:`Remuneracion: ${v("salary")||"[IMPORTE]"} mensuales.`},
+ {t:`Se expide el presente certificado en ${v("city")}, a ${dt.d} de ${dt.mon.toLowerCase()} de ${dt.y}.`},
+ {t:`Por la empresa: ${v("director")||"________________"}`}
+ ],`CERTIFICADO_DN_${v("surname")}.pdf`);
+}
+async function makeInvoice(){
+ let dt=dateParts();
+ await simpleDoc(`INVOICE / FACTURA - ${dt.y}${dt.m}${dt.d}`,[
+ {h:"PROVEEDOR",t:`${person()} | Pasaporte: ${v("pass")} | ${addr()} | ${v("email")} | ${v("phone")}`},
+ {h:"CLIENTE",t:`${v("company")||"[EMPRESA]"} | ${v("companyid")||"[ID]"} | ${v("companyaddr")||"[DIRECCION]"}`},
+ {h:"CONCEPTO",t:`Servicios profesionales de ${v("role")} correspondientes al periodo indicado. Contrato Nº ${v("contractno")||"S/N"}.`},
+ {h:"IMPORTE",t:`${v("salary")||"[IMPORTE]"}`},
+ {h:"FECHA",t:`${dt.d}/${dt.m}/${dt.y}`}
+ ],`INVOICE_${dt.y}${dt.m}${dt.d}_${v("surname")}.pdf`);
+}
+async function makeCV(){
+ await simpleDoc(`CURRICULUM VITAE - ${person()}`,[
+ {h:"PERFIL PROFESIONAL",t:`Profesional especializado en ${v("role")}, con experiencia en trabajo remoto y colaboracion internacional.`},
+ {h:"EXPERIENCIA ACTUAL",t:`${v("company")||"[EMPRESA]"} - ${v("role")}. ${v("duties")}`},
+ {h:"MODALIDAD DE TRABAJO",t:"Prestacion remota mediante herramientas digitales, coordinacion online, gestion autonoma de tareas y comunicacion con clientes y equipos."},
+ {h:"DATOS DE CONTACTO",t:`${v("email")} | ${v("phone")} | ${v("city")}, Espana`}
+ ],`CV_${v("surname")}_${v("given")}.pdf`);
+}
+function open790(){window.open("https://expinterweb.inclusion.gob.es/Tasa038/login.htm","_blank");$("status").textContent="Abierta la sede oficial para la tasa 790 codigo 038."}
 $("passfile").onchange=async e=>{
  let f=e.target.files[0];if(!f)return;$("ocr").textContent="Распознаю паспорт на устройстве...";
  try{
