@@ -1,15 +1,94 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DN Spain Generator</title>
-<style>body{font-family:-apple-system,sans-serif;margin:0;background:#0b1020;color:#fff}header{padding:22px;background:#111a30}main{padding:16px;max-width:900px;margin:auto}.card{background:#151d31;border:1px solid #2c3855;border-radius:18px;padding:16px;margin:12px 0}.grid,.docs{display:grid;grid-template-columns:1fr 1fr;gap:10px}input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:1px solid #394764;background:#0d1425;color:#fff}label,small{display:block;font-size:12px;color:#aab5cc}.doc{background:#10182a;padding:14px;border-radius:14px;border:1px solid #2c3855}button{width:100%;padding:12px;margin-top:10px;border:0;border-radius:11px;background:#4f8cff;color:#fff;font-weight:700}@media(max-width:600px){.grid,.docs{grid-template-columns:1fr}}</style></head>
-<body><header><b>DN Spain · Document Generator</b><div style="color:#9da8bf;font-size:13px">Карточка клиента → документы</div></header><main>
-<div class="card"><h2>Карточка клиента</h2><div class="grid">
-<div><label>Фамилия</label><input id="sn" value="GRIBNYAKOVA"></div><div><label>Имя</label><input id="nm" value="ELENA"></div>
-<div><label>Паспорт</label><input id="pp" value="76698077"></div><div><label>Гражданство</label><input value="RUSA"></div>
-<div><label>Дата рождения</label><input value="21/05/1982"></div><div><label>Место рождения</label><input value="CHECOSLOVAQUIA"></div>
-<div><label>Телефон</label><input value="678038462"></div><div><label>Email</label><input value="was@gmail.com"></div>
-<div><label>Адрес</label><input value="CARRER DE GUITARD, 80"></div><div><label>Nº / Piso</label><input value="5 / 2"></div>
-<div><label>CP</label><input value="08014"></div><div><label>Город</label><input value="BARCELONA"></div></div></div>
-<div class="card"><h2>Документы</h2><div class="docs"><div class="doc"><b>MI-T</b><small>Основной заявитель DN</small><button onclick="makeDoc('MI-T')">Сформировать</button></div><div class="doc"><b>MI-F</b><small>Член семьи</small><button onclick="makeDoc('MI-F')">Сформировать</button></div><div class="doc"><b>Form 10</b><small>Seguridad Social</small><button onclick="makeDoc('Form 10')">Сформировать</button></div><div class="doc"><b>Form 12</b><small>Antecedentes penales</small><button onclick="makeDoc('Form 12')">Сформировать</button></div><div class="doc"><b>Form 14</b><small>Designación de representante</small><button onclick="makeDoc('Form 14')">Сформировать</button></div><div class="doc"><b>790-038</b><small>Tasa</small><button onclick="makeDoc('790-038')">Сформировать</button></div><div class="doc"><b>Договор DN</b><small>Договор услуг</small><button onclick="makeDoc('Договор DN')">Сформировать</button></div><div class="doc"><b>Справка DN</b><small>Удалённая работа и доход</small><button onclick="makeDoc('Справка DN')">Сформировать</button></div><div class="doc"><b>Инвойс</b><small>Счёт за услуги</small><button onclick="makeDoc('Инвойс')">Сформировать</button></div><div class="doc"><b>CV</b><small>CV на испанском</small><button onclick="makeDoc('CV')">Сформировать</button></div></div></div>
-<div class="card" id="out"><h2>Предпросмотр</h2><small>Выберите документ.</small></div>
-<div class="card"><h2>Представитель</h2><p>Maksim Malkov · Z4258480D · 627003735 · prok@gmail.com</p></div>
-<div class="card"><h2>Компания</h2><p>ООО «Рус-Инвентор» · ИНН 9718178903 · КПП 771801001 · ОГРН 1217700436876</p></div>
-</main><script>function makeDoc(t){document.getElementById("out").innerHTML="<h2>"+t+"</h2><p><b>"+sn.value+" "+nm.value+"</b><br>Паспорт: "+pp.value+"</p><button onclick='window.print()'>Печать / Сохранить PDF</button>"}</script></body></html>
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DN Spain — Document Generator</title>
+<style>
+:root{--bg:#0b1020;--card:#141b2d;--muted:#98a2b3;--text:#f4f6fb;--accent:#4f8cff;--line:#27324a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:980px;margin:auto;padding:18px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{font-size:24px;margin:10px 0 4px}.sub{color:var(--muted);margin:0 0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+label{display:block;color:#cbd3e3;font-size:13px;margin-bottom:5px}
+input,select,textarea{width:100%;background:#0d1425;color:#fff;border:1px solid #34405b;border-radius:11px;padding:12px;font-size:16px}
+textarea{min-height:90px}.docs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+button{border:0;border-radius:12px;padding:13px 14px;font-size:15px;font-weight:700;background:var(--accent);color:white}
+.doc{background:#1b2540;text-align:left}.doc small{display:block;color:#b6c0d3;font-weight:400;margin-top:3px}
+.note{color:var(--muted);font-size:13px}.status{margin-top:10px;color:#9bd1a7}
+@media(max-width:650px){.grid,.docs{grid-template-columns:1fr}.wrap{padding:12px}}
+</style>
+</head>
+<body><div class="wrap">
+<div class="top"><div><h1>DN Spain Document Generator</h1><p class="sub">Карточка клиента → готовый отдельный документ</p></div></div>
+
+<div class="card">
+<h2>Клиент</h2>
+<div class="grid">
+<div><label>Имя / Nombre</label><input id="name" value="ELENA"></div>
+<div><label>Фамилия / Apellidos</label><input id="surname" value="GRIBNYAKOVA"></div>
+<div><label>Паспорт</label><input id="passport" value="76698077"></div>
+<div><label>Национальность</label><input id="nationality" value="RUSA"></div>
+<div><label>Дата рождения</label><input id="dob" value="21/05/1982"></div>
+<div><label>Место рождения</label><input id="birthplace" value="CHECOSLOVAQUIA"></div>
+<div><label>Телефон</label><input id="phone" value="678038462"></div>
+<div><label>Email</label><input id="email" value="was@gmail.com"></div>
+<div><label>Адрес</label><input id="address" value="CARRER DE GUITARD, 80"></div>
+<div><label>Nº</label><input id="number" value="5"></div>
+<div><label>Piso</label><input id="floor" value="2"></div>
+<div><label>CP</label><input id="cp" value="08014"></div>
+<div><label>Localidad</label><input id="city" value="BARCELONA"></div>
+<div><label>Provincia</label><input id="province" value="BARCELONA"></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Документы</h2>
+<div class="docs">
+<button class="doc" onclick="makeDoc('MIT')">MI-T<small>Teletrabajador internacional</small></button>
+<button class="doc" onclick="makeDoc('MIF')">MI-F<small>Familiar de teletrabajador</small></button>
+<button class="doc" onclick="makeDoc('F10')">Форма 10<small>Compromiso Seguridad Social</small></button>
+<button class="doc" onclick="makeDoc('F12')">Форма 12<small>Declaración antecedentes penales</small></button>
+<button class="doc" onclick="makeDoc('F14')">Форма 14<small>Designación de representante</small></button>
+<button class="doc" onclick="makeDoc('CONTRACT')">Договор DN<small>Черновик договора</small></button>
+<button class="doc" onclick="makeDoc('CERT')">Справка DN<small>Справка о работе</small></button>
+<button class="doc" onclick="makeDoc('INVOICE')">Invoice<small>Счёт</small></button>
+<button class="doc" onclick="makeDoc('CV')">CV<small>Currículum Vitae</small></button>
+</div>
+<p class="note">Важно: кнопка больше не печатает интерфейс сайта. Она открывает отдельный документ в новой вкладке. На iPhone выберите «Поделиться → Печать → раздвиньте превью двумя пальцами → Поделиться → Сохранить в Файлы» — получится PDF только документа.</p>
+<div id="status" class="status"></div>
+</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function data(){let ids=['name','surname','passport','nationality','dob','birthplace','phone','email','address','number','floor','cp','city','province'];let d={};ids.forEach(x=>d[x]=$(x).value);return d}
+function base(title,body){
+return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(title)}</title>
+<style>@page{size:A4;margin:18mm}body{font-family:Arial,sans-serif;color:#111;margin:0;font-size:12pt;line-height:1.42}h1{text-align:center;font-size:16pt;margin:0 0 22px}h2{font-size:12pt;margin:18px 0 8px}.row{margin:7px 0}.box{border:1px solid #aaa;padding:12px;margin:12px 0}.sign{margin-top:45px;display:flex;justify-content:space-between}.muted{color:#555}.toolbar{position:fixed;right:12px;top:12px}@media print{.toolbar{display:none}}button{background:#111;color:#fff;border:0;border-radius:8px;padding:10px 14px}</style>
+</head><body><div class="toolbar"><button onclick="window.print()">Сохранить PDF</button></div>${body}</body></html>`}
+function common(d){return `<div class="box">
+<div class="row"><b>Nombre y apellidos:</b> ${esc(d.name)} ${esc(d.surname)}</div>
+<div class="row"><b>Pasaporte:</b> ${esc(d.passport)}</div>
+<div class="row"><b>Nacionalidad:</b> ${esc(d.nationality)}</div>
+<div class="row"><b>Fecha de nacimiento:</b> ${esc(d.dob)}</div>
+<div class="row"><b>Lugar de nacimiento:</b> ${esc(d.birthplace)}</div>
+<div class="row"><b>Domicilio:</b> ${esc(d.address)}, Nº ${esc(d.number)}, Piso ${esc(d.floor)}, ${esc(d.cp)} ${esc(d.city)}, ${esc(d.province)}</div>
+<div class="row"><b>Tel.:</b> ${esc(d.phone)} &nbsp; <b>Email:</b> ${esc(d.email)}</div></div>`}
+function makeDoc(type){
+ const d=data(); let title='',body='';
+ if(type==='F10'){title='COMPROMISO DE AFILIACIÓN A LA SEGURIDAD SOCIAL';body=`<h1>${title}</h1>${common(d)}<p>Por medio del presente documento, manifiesto mi compromiso de solicitar mi afiliación y alta en la Seguridad Social española en el régimen que corresponda, una vez obtenida resolución favorable de la autorización de residencia para teletrabajo de carácter internacional.</p><div class="sign"><span>Barcelona, ${new Date().toLocaleDateString('es-ES')}</span><span>Firma: __________________</span></div>`}
+ else if(type==='F12'){title='DECLARACIÓN RESPONSABLE DE CARECER DE ANTECEDENTES PENALES';body=`<h1>${title}</h1>${common(d)}<p>DECLARO por la presente, conforme a la normativa aplicable, que durante los últimos cinco años carezco de antecedentes penales no cancelados por delitos previstos en el ordenamiento jurídico español. Esta declaración se basa en mi conocimiento personal y es cierta a mi leal saber y entender.</p><div class="sign"><span>Barcelona, ${new Date().toLocaleDateString('es-ES')}</span><span>Firma: __________________</span></div>`}
+ else if(type==='F14'){title='DOCUMENTO DE DESIGNACIÓN DE REPRESENTANTE';body=`<h1>${title}</h1>${common(d)}<h2>Representante</h2><div class="box"><b>MAKSIM MALKOV</b><br>NIE: Z4258480D<br>Tel.: 627003735<br>Email: prok@gmail.com</div><p>DESIGNO a la persona indicada como representante para presentar y tramitar en mi nombre la solicitud y la documentación relacionada, salvo aquellos actos que requieran comparecencia personal.</p><div class="sign"><span>Firma interesado: __________________</span><span>Firma representante: __________________</span></div>`}
+ else if(type==='MIT'){title='SOLICITUD — TELETRABAJADOR DE CARÁCTER INTERNACIONAL';body=`<h1>${title}</h1>${common(d)}<div class="box"><b>Tipo:</b> INICIAL<br><b>Situación:</b> TITULAR DE AUTORIZACIÓN DE ESTANCIA EN ESPAÑA<br><b>Categoría:</b> TELETRABAJADOR DE CARÁCTER INTERNACIONAL</div><p class="muted">Versión de trabajo generada desde la ficha del cliente.</p>`}
+ else if(type==='MIF'){title='SOLICITUD — FAMILIAR DE TELETRABAJADOR INTERNACIONAL';body=`<h1>${title}</h1>${common(d)}<div class="box"><b>Tipo:</b> INICIAL<br><b>Situación:</b> TITULAR DE AUTORIZACIÓN DE ESTANCIA EN ESPAÑA<br><b>Categoría:</b> FAMILIAR DE TELETRABAJADOR DE CARÁCTER INTERNACIONAL</div><p class="muted">Versión de trabajo generada desde la ficha del cliente.</p>`}
+ else if(type==='CONTRACT'){title='CONTRATO DE PRESTACIÓN DE SERVICIOS';body=`<h1>${title}</h1>${common(d)}<p>Documento base. Los datos de empresa, objeto, remuneración, número y fecha del contrato se completarán en el módulo de empresa/contrato.</p>`}
+ else if(type==='CERT'){title='CERTIFICADO LABORAL / PROFESIONAL';body=`<h1>${title}</h1>${common(d)}<p>Se certifica que la persona indicada mantiene una relación profesional vigente y puede desarrollar sus funciones de forma remota. Los datos de empresa, puesto, remuneración y contrato se completarán desde la ficha de empresa.</p>`}
+ else if(type==='INVOICE'){title='INVOICE / FACTURA';body=`<h1>${title}</h1>${common(d)}<p>Emisor, cliente, concepto, importe y datos bancarios se completarán desde el módulo de facturación.</p>`}
+ else {title='CURRÍCULUM VITAE';body=`<h1>${esc(d.name)} ${esc(d.surname)}</h1><p style="text-align:center">${esc(d.email)} · ${esc(d.phone)} · ${esc(d.city)}, España</p><h2>Perfil profesional</h2><p>Profesional con experiencia en trabajo remoto internacional. Complete experiencia, formación y competencias en el módulo CV.</p><h2>Datos personales</h2>${common(d)}`}
+ const w=window.open('','_blank'); if(!w){$('status').textContent='Safari bloqueó la nueva ventana. Permite ventanas emergentes для этого сайта.';return}
+ w.document.open();w.document.write(base(title,body));w.document.close();
+ $('status').textContent='Документ открыт отдельно. Интерфейс сайта в PDF не попадёт.';
+}
+</script></body></html>
