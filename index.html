@@ -74,9 +74,42 @@ async function makeMIT(){
 }
 async function makeMIF(){
  let d=await PDFLib.PDFDocument.load(b64(T.MIF)),f=d.getForm(),bd=dobParts(),dt=dateParts(),hn=v("holder").split(/\s+/);
- [["Texto30",v("pass")],["Texto34",v("surname")],["Texto35",v("given")],["Texto36",v("pob")],["Texto37",bd.d],["Texto38",bd.m],["Texto39",bd.y],["Texto40",v("pob")],["Texto41",v("nat")],["Texto42",v("father")],["Texto47",v("phone")],["Texto48",v("email")],["Texto51",v("regage")],["Texto52",v("holderpass")],["Texto56",hn.slice(1).join(" ")],["Texto57",hn[0]||""],["Texto58",v("rsur")],["Texto59",v("rgiv")],["Texto60",v("rphone")],["Texto61",v("remail")],["Texto62",v("rnie")],["Texto64",v("city")],["Texto65",dt.d],["Texto66",dt.mon],["Texto67",dt.y]].forEach(x=>setText(f,...x));
- ["Casilla de verificación12","Casilla de verificación13","Casilla de verificación16","Casilla de verificación22","Casilla de verificación24","Casilla de verificación29"].forEach(x=>check(f,x));
- let o=await onePage(d);dl(await o.save(),`MI-F_${v("surname")}_${v("given")}.pdf`);$("status").textContent="MI-F сформирован из текущих полей.";
+ // В MI-F поля 43-46 имеют по два widget-а с одинаковыми именами,
+ // поэтому адресный блок наносим отдельно на точные координаты.
+ [["Texto30",v("pass")],["Texto34",v("surname")],["Texto35",v("given")],["Texto36",v("pob")],
+ ["Texto37",bd.d],["Texto38",bd.m],["Texto39",bd.y],["Texto40",v("pob")],["Texto41",v("nat")],
+ ["Texto42",v("father")],["Texto47",v("phone")],["Texto48",v("email")],
+ ["Texto51",v("regage")],["Texto52",v("holderpass")],["Texto56",hn.slice(1).join(" ")],["Texto57",hn[0]||""],
+ ["Texto58",v("rsur")],["Texto59",v("rgiv")],["Texto60",v("rphone")],["Texto61",v("remail")],["Texto62",v("rnie")],
+ ["Texto64",v("city")],["Texto65",dt.d],["Texto66",dt.mon],["Texto67",dt.y]].forEach(x=>setText(f,...x));
+
+ // Тип: familiar de teletrabajador + inicial + estancia en España.
+ ["Casilla de verificación12","Casilla de verificación13","Casilla de verificación16"].forEach(x=>check(f,x));
+
+ // Пол: 21 = Hombre, 22 = Mujer.
+ check(f, v("sex")==="M" ? "Casilla de verificación21" : "Casilla de verificación22");
+
+ // Семейное положение: 23 S, 24 C, 25 V, 26 D, 27 Sp, 28 Uh.
+ let civ={"Soltera":23,"Soltero":23,"Casada":24,"Casado":24,"Viuda":25,"Viudo":25,"Divorciada":26,"Divorciado":26};
+ if(civ[v("civil")]) check(f,"Casilla de verificación"+civ[v("civil")]);
+
+ // Vínculo: Cónyuge.
+ check(f,"Casilla de verificación29");
+
+ let o=await onePage(d), pg=o.getPages()[0], font=await o.embedFont(PDFLib.StandardFonts.Helvetica);
+ let put=(t,x,y,size=7.4)=>pg.drawText(String(t||""),{x,y,size,font});
+
+ // Поля с дублированными именами в исходном официальном MI-F.
+ put(v("mother"),344,403);
+ put(v("street"),115,393);
+ put(v("num"),470,393);
+ put(v("floor"),508,393);
+ put(v("city"),79,382);
+ put(v("zip"),298,382);
+ put(v("prov"),388,382);
+
+ dl(await o.save(),`MI-F_${v("surname")}_${v("given")}.pdf`);
+ $("status").textContent="MI-F сформирован: адрес, город, индекс, провинция и пол заполнены из карточки клиента.";
 }
 async function makeLetter(k){let d=await PDFLib.PDFDocument.load(b64(T[k]));dl(await d.save(),`${k}_${v("surname")}.pdf`);$("status").textContent=k+" скачан на исходном бланке. Динамическое нанесение полей подключено для MI-T/MI-F и формы 14."}
 async function make14(){
