@@ -76,6 +76,7 @@ input[type=file]{display:none}.upload{display:block;text-align:center;padding:15
 
 <div class="c"><h2>Данные Invoice</h2><div class="g"><div><label>Номер Invoice</label><input id="invoiceno"></div><div><label>Период услуг</label><input id="invoiceperiod"></div></div></div>
 <div class="c"><h2>Данные CV</h2><div class="g"><div class="full"><label>Профессиональный профиль</label><textarea id="cvprofile"></textarea></div><div class="full"><label>Опыт работы и даты</label><textarea id="cvexperience"></textarea></div><div class="full"><label>Образование</label><textarea id="cveducation"></textarea></div><div class="full"><label>Навыки</label><textarea id="cvskills"></textarea></div><div class="full"><label>Языки</label><textarea id="cvlanguages"></textarea></div></div></div>
+<div class="c"><h2>Варианты договора</h2><label for="contractVariant">Структура, формулировки и оформление</label><select id="contractVariant"></select><div id="contractVariantInfo" class="st"></div><button class="btn sec" style="margin-top:10px" onclick="nextContractVariant()">Следующий вариант</button><details style="margin-top:14px"><summary>Посмотреть текст перед созданием PDF</summary><pre id="contractPreview" style="white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit;font-size:14px;line-height:1.6;background:#0d1425;padding:14px;border-radius:10px"></pre></details></div>
 <div class="c"><h2>6. Документы</h2><div class="docs">
 <button class="btn" onclick="makeMIT()">MI-T</button><button class="btn" onclick="makeMIF()">MI-F</button>
 <button class="btn sec" onclick="make10()">Форма 10</button><button class="btn sec" onclick="make12()">Форма 12</button>
@@ -252,18 +253,75 @@ async function make14(){
  $("status").textContent="Форма 14 сформирована как чистый векторный PDF.";
 }
 
-async function makeContract(){
- let dt=dateParts(), cd=v("contractdate")||v("date"), no=v("contractno")||"S/N";
- await simpleDoc(`CONTRATO DE PRESTACION DE SERVICIOS Nº ${no}`,[
- {h:"PARTES",t:`De una parte, ${v("company")||"[EMPRESA]"}, identificacion ${v("companyid")||"[ID]"}, con domicilio en ${v("companyaddr")||"[DIRECCION]"}, representada por ${v("director")||"[REPRESENTANTE]"}. De otra parte, ${person()}, pasaporte ${v("pass")}, con domicilio en ${addr()}.`},
- {h:"OBJETO",t:`El profesional prestara servicios como ${v("role")}. Funciones: ${v("duties")}`},
- {h:"MODALIDAD",t:"Los servicios se prestaran a distancia mediante medios informaticos y de telecomunicaciones. La actividad puede desarrollarse desde Espana y desde otros paises, sin necesidad de presencia habitual en las instalaciones de la empresa."},
- {h:"REMUNERACION",t:`La remuneracion acordada es de ${v("salary")||"[IMPORTE]"} al mes, contra la documentacion de cobro que corresponda.`},
- {h:"DURACION",t:`El contrato entra en vigor el ${cd} y se concierta con caracter indefinido, salvo terminacion conforme a las condiciones acordadas por las partes.`},
- {h:"INDEPENDENCIA",t:"La prestacion se realiza con autonomia organizativa y profesional, sin perjuicio de la coordinacion necesaria para la correcta ejecucion de los servicios."},
- {h:"FIRMA",t:`Firmado en ${v("city")}, el ${dt.d}/${dt.m}/${dt.y}. EMPRESA: ${v("director")||"________________"}   PROFESIONAL: ${person()}`}
- ],`CONTRATO_DN_${v("surname")}.pdf`);
+const CONTRACT_FORMATS=[
+ {name:'Классический',layout:'classic',order:['parties','object','remote','pay','term','independence']},
+ {name:'Компактный',layout:'compact',order:['parties','object','pay','term','remote','independence']},
+ {name:'Деловой',layout:'business',order:['parties','object','pay','remote','independence','term']},
+ {name:'Современный',layout:'modern',order:['parties','object','remote','independence','pay','term']},
+ {name:'С акцентом на удалённую работу',layout:'remote',order:['parties','remote','object','independence','pay','term']}
+];
+const CONTRACT_TONES=['Нейтральный','Формальный','Лаконичный','Развёрнутый'];
+const CONTRACT_VARIANTS=CONTRACT_FORMATS.flatMap((format,index)=>CONTRACT_TONES.map((tone,wording)=>({id:String(index*4+wording+1).padStart(2,'0'),label:format.name+' / '+tone,layout:format.layout,order:format.order,wording})));
+function contractVariant(id=v('contractVariant')){const variant=CONTRACT_VARIANTS.find(x=>x.id===id);if(!variant)throw Error('Выберите вариант договора');return variant}
+function contractData(){const dt=dateParts(),iso=v('contractdate');return {company:v('company'),companyid:v('companyid'),companyaddr:v('companyaddr'),director:v('director'),name:person(),pass:v('pass'),address:addr(),role:v('role'),duties:v('duties'),salary:v('salary'),number:v('contractno')||'S/N',start:iso?iso.split('-').reverse().join('/'):'[FECHA]',city:v('city'),signed:`${dt.d}/${dt.m}/${dt.y}`}}
+function contractSections(variant,data){
+ const d=data,k=variant.wording,headings={parties:['PARTES','INTERVINIENTES','LAS PARTES','IDENTIFICACIÓN DE LAS PARTES'],object:['OBJETO','OBJETO DEL CONTRATO','SERVICIOS','ALCANCE DE LOS SERVICIOS'],remote:['MODALIDAD','PRESTACIÓN A DISTANCIA','TRABAJO REMOTO','LUGAR Y MODALIDAD DE PRESTACIÓN'],pay:['REMUNERACIÓN','CONDICIONES ECONÓMICAS','HONORARIOS','REMUNERACIÓN MENSUAL'],term:['DURACIÓN','VIGENCIA DEL CONTRATO','VIGENCIA','ENTRADA EN VIGOR Y DURACIÓN'],independence:['INDEPENDENCIA','AUTONOMÍA PROFESIONAL','AUTONOMÍA','ORGANIZACIÓN DE LA PRESTACIÓN']};
+ const texts={
+  parties:[
+   `De una parte, ${d.company}, identificación ${d.companyid}, con domicilio en ${d.companyaddr}, representada por ${d.director}. De otra parte, ${d.name}, pasaporte ${d.pass}, con domicilio en ${d.address}.`,
+   `Intervienen ${d.company}, con identificación ${d.companyid} y domicilio en ${d.companyaddr}, representada en este acto por ${d.director}, y ${d.name}, titular del pasaporte ${d.pass}, con domicilio en ${d.address}. Ambas partes formalizan el presente contrato de prestación de servicios.`,
+   `Empresa: ${d.company}. Identificación: ${d.companyid}. Domicilio: ${d.companyaddr}. Representante: ${d.director}. Profesional: ${d.name}. Pasaporte: ${d.pass}. Domicilio: ${d.address}.`,
+   `El presente acuerdo se celebra entre ${d.company}, identificada con el número ${d.companyid}, domiciliada en ${d.companyaddr} y representada por ${d.director}, y el profesional ${d.name}, identificado mediante el pasaporte ${d.pass} y domiciliado en ${d.address}. Estas personas se denominan, respectivamente, la empresa y el profesional.`
+  ],
+  object:[
+   `El profesional prestará servicios como ${d.role}. Funciones: ${d.duties}`,
+   `Constituye el objeto del presente contrato la prestación de servicios profesionales de ${d.role}. Las funciones que integran esta prestación son las siguientes: ${d.duties}`,
+   `Servicios: ${d.role}. Funciones acordadas: ${d.duties}`,
+   `La colaboración tiene por objeto los servicios correspondientes a la especialización de ${d.role}. El contenido de la prestación comprende las funciones indicadas por las partes: ${d.duties}`
+  ],
+  remote:[
+   'Los servicios se prestarán a distancia mediante medios informáticos y de telecomunicaciones. La actividad puede desarrollarse desde España y desde otros países, sin necesidad de presencia habitual en las instalaciones de la empresa.',
+   'La ejecución de los servicios se realizará de forma remota a través de medios informáticos y de telecomunicaciones. Las partes contemplan su desarrollo desde España o desde otros países, sin exigir la presencia habitual del profesional en las instalaciones de la empresa.',
+   'Modalidad: a distancia, por medios informáticos y de telecomunicaciones. La actividad podrá desarrollarse desde España o desde otros países, sin presencia habitual en las instalaciones de la empresa.',
+   'Para la realización de las funciones descritas se utilizarán medios informáticos y de telecomunicaciones. Las partes acuerdan una modalidad de prestación a distancia que permite desarrollar la actividad desde España y desde otros países. Esta modalidad no requiere presencia habitual del profesional en las instalaciones de la empresa.'
+  ],
+  pay:[
+   `La remuneración acordada es de ${d.salary} al mes, contra la documentación de cobro que corresponda.`,
+   `Como contraprestación por los servicios, las partes fijan una remuneración mensual de ${d.salary}, contra la documentación de cobro correspondiente.`,
+   `Remuneración mensual: ${d.salary}, contra la documentación de cobro que corresponda.`,
+   `Por la prestación de los servicios objeto de este contrato, la empresa y el profesional acuerdan una remuneración de ${d.salary} por mes. El cobro se realizará contra la documentación que corresponda a la prestación.`
+  ],
+  term:[
+   `El contrato entra en vigor el ${d.start} y se concierta con carácter indefinido, salvo terminación conforme a las condiciones acordadas por las partes.`,
+   `La vigencia del presente contrato se inicia el ${d.start}. Su duración se establece con carácter indefinido, sin perjuicio de su terminación conforme a las condiciones acordadas por las partes.`,
+   `Inicio: ${d.start}. Duración: indefinida, salvo terminación conforme a las condiciones acordadas por las partes.`,
+   `La fecha de entrada en vigor del acuerdo es el ${d.start}. A partir de dicha fecha la relación se concierta por tiempo indefinido. Su terminación se efectuará conforme a las condiciones que hayan acordado las partes.`
+  ],
+  independence:[
+   'La prestación se realiza con autonomía organizativa y profesional, sin perjuicio de la coordinación necesaria para la correcta ejecución de los servicios.',
+   'El profesional desarrollará la prestación con autonomía organizativa y profesional. Esta autonomía se entiende sin perjuicio de la coordinación necesaria con la empresa para la correcta ejecución de los servicios.',
+   'La prestación mantiene la autonomía organizativa y profesional, con la coordinación necesaria para ejecutar correctamente los servicios.',
+   'La organización de la prestación responde a la autonomía organizativa y profesional del prestador. Al mismo tiempo, las partes mantendrán la coordinación que resulte necesaria para la correcta realización de los servicios descritos en este contrato.'
+  ]
+ };
+ return variant.order.map(key=>({key,h:headings[key][k],t:texts[key][k]}));
 }
+function contractText(id=v('contractVariant')){const variant=contractVariant(id),data=contractData(),sections=contractSections(variant,data);return `CONTRATO DE PRESTACIÓN DE SERVICIOS Nº ${data.number}\n\n`+sections.map((s,i)=>`${i+1}. ${s.h}\n${s.t}`).join('\n\n')+`\n\nFIRMAS\nFirmado en ${data.city}, el ${data.signed}.\nPor la empresa: ${data.director}\nProfesional: ${data.name}\n\nFirma de la empresa: ____________________\nFirma del profesional: ____________________`}
+function updateContractPreview(){if(!$('contractPreview'))return;$('contractPreview').textContent=contractText();const variant=contractVariant();$('contractVariantInfo').textContent=`Вариант ${variant.id} из 20: ${variant.label}. Меняются формулировки и оформление. Стороны, услуги, месячная оплата, дата начала и бессрочная продолжительность берутся из одной карточки.`}
+function nextContractVariant(){const i=CONTRACT_VARIANTS.findIndex(x=>x.id===v('contractVariant'));$('contractVariant').value=CONTRACT_VARIANTS[(i+1)%20].id;updateContractPreview()}
+function contractDefinition(id=v('contractVariant')){
+ const variant=contractVariant(id),data=contractData(),sections=contractSections(variant,data),compact=variant.layout==='compact',dense=compact||variant.wording===3,color=variant.layout==='modern'?'#204c72':variant.layout==='remote'?'#30584b':'#20242a';
+ const content=[{text:'CONTRATO DE PRESTACIÓN DE SERVICIOS',style:'title',margin:[0,0,0,7]},{text:`Nº ${data.number}  |  ${data.city}  |  ${data.signed}`,fontSize:9,color:'#555555',margin:[0,0,0,compact?12:20]}];
+ if(variant.layout==='business')content.push({table:{widths:['auto','*'],body:[['Servicios',data.role],['Remuneración mensual',data.salary],['Inicio',data.start],['Modalidad','A distancia; desde España u otros países'],['Duración','Indefinida']]},layout:'lightHorizontalLines',fontSize:9,margin:[0,0,0,14]});
+ for(let i=0;i<sections.length;i++){const sec=sections[i],heading=`${i+1}. ${sec.h}`;if(variant.layout==='modern'||variant.layout==='remote')content.push({table:{widths:['*'],body:[[{text:heading,bold:true,color:'white',fillColor:color,margin:[6,4,6,4]}]]},layout:'noBorders',fontSize:10,margin:[0,dense?7:10,0,6]});else content.push({text:heading,bold:true,fontSize:compact?9.5:10.5,margin:[0,dense?6:10,0,5]});content.push({text:sec.t,fontSize:dense?9.5:10.5,lineHeight:dense?1.1:1.2,margin:[0,0,0,dense?5:8]});}
+ const lastClause=content.splice(-2);
+ content.push({unbreakable:true,stack:[...lastClause,{text:'FIRMAS',bold:true,fontSize:10.5,margin:[0,16,0,6]},{text:`Firmado en ${data.city}, el ${data.signed}.`,fontSize:10,margin:[0,0,0,24]},{columns:[{width:'50%',stack:[{text:'____________________________',fontSize:10},{text:'POR LA EMPRESA',bold:true,fontSize:9,margin:[0,5,0,3]},{text:data.director,fontSize:10}]},{width:'50%',stack:[{text:'____________________________',fontSize:10},{text:'EL PROFESIONAL',bold:true,fontSize:9,margin:[0,5,0,3]},{text:data.name,fontSize:10}]}]}]});
+ return {pageSize:'A4',pageMargins:compact?[44,42,44,44]:[48,50,48,50],defaultStyle:{font:'Roboto',color:'#20242a'},styles:{title:{fontSize:variant.layout==='modern'?19:16,bold:true,color}},content,footer:(page,pages)=>({text:`Contrato Nº ${data.number}  |  ${page} / ${pages}`,alignment:'right',fontSize:8,color:'#666666',margin:[48,12,48,0]})};
+}
+async function makeContract(){const variant=contractVariant();await new Promise((resolve,reject)=>{try{pdfMake.createPdf(contractDefinition()).getBuffer(bytes=>{dl(bytes,`CONTRATO_DN_V${variant.id}_${v('surname')}.pdf`);resolve()})}catch(e){reject(e)}});$('status').textContent=`Договор сформирован: вариант ${variant.id}, ${variant.label}.`}
+function initContractVariants(){const select=$('contractVariant');for(const variant of CONTRACT_VARIANTS){const option=document.createElement('option');option.value=variant.id;option.textContent=variant.id+'. '+variant.label;select.appendChild(option)}select.value='01';select.onchange=updateContractPreview;document.addEventListener('input',e=>{if(e.target.matches('input,textarea')&&document.querySelector('#topforms button.active')?.textContent==='Договор')updateContractPreview()});document.addEventListener('change',e=>{if(e.target.matches('select')&&e.target!==select&&document.querySelector('#topforms button.active')?.textContent==='Договор')updateContractPreview()});updateContractPreview()}
+initContractVariants();
+
 async function makeCertificate(){
  let dt=dateParts();
  await simpleDoc("CERTIFICADO DE RELACION PROFESIONAL Y TRABAJO A DISTANCIA",[
@@ -307,7 +365,7 @@ function selectDoc(kind,btn){
  if(["MIT","MIF","F14"].includes(kind))rep.style.display="block";
  if(kind==="MIF")fam.style.display="block";
  if(["CONTRACT","CERT","INV","CV"].includes(kind)){client.style.display="block";work.style.display="block";}
- if(kind==="INV")byTitle("Данные Invoice").style.display="block";if(kind==="CV")byTitle("Данные CV").style.display="block";docs.style.display="block";
+ if(kind==="CONTRACT"){byTitle("Варианты договора").style.display="block";updateContractPreview();}if(kind==="INV")byTitle("Данные Invoice").style.display="block";if(kind==="CV")byTitle("Данные CV").style.display="block";docs.style.display="block";
  document.querySelectorAll(".docs button").forEach(x=>x.style.display="none");
  const map={MIT:0,MIF:1,F10:2,F12:3,F14:4,CONTRACT:5,CERT:6,INV:7,CV:8,TASA:9};
  let buttons=document.querySelectorAll(".docs button"); if(buttons[map[kind]])buttons[map[kind]].style.display="block";
@@ -369,7 +427,7 @@ $('passfile').onchange=async e=>{
  finally{if(worker)await worker.terminate().catch(()=>{});if(pdf)await pdf.destroy().catch(()=>{});passportOcrRunning=false;$('passfile').disabled=false;}
 };
 
-const required={MIT:['surname','given','pass','dob','pob','birthcountry','nat','street','num','zip','city','prov','date'],MIF:['surname','given','pass','dob','pob','birthcountry','nat','street','num','zip','city','prov','date','holder','holderpass'],F10:['surname','given','city','date'],F12:['surname','given','pass','dob','nat','street','num','zip','city','prov','date'],F14:['surname','given','pass','dob','birthcountry','city','date','rsur','rgiv','rnie','rstreet','rnum','rcity','rzip','rprov'],CONTRACT:['surname','given','pass','city','date','company','companyid','companyaddr','director','role','duties','salary','contractdate'],CERT:['surname','given','pass','city','date','company','companyid','director','role','duties','salary','contractdate'],INV:['surname','given','pass','city','date','company','companyid','companyaddr','role','salary','invoiceno','invoiceperiod'],CV:['surname','given','email','city','cvprofile','cvexperience','cveducation','cvskills','cvlanguages']};
+const required={MIT:['surname','given','pass','dob','pob','birthcountry','nat','street','num','zip','city','prov','date'],MIF:['surname','given','pass','dob','pob','birthcountry','nat','street','num','zip','city','prov','date','holder','holderpass'],F10:['surname','given','city','date'],F12:['surname','given','pass','dob','nat','street','num','zip','city','prov','date'],F14:['surname','given','pass','dob','birthcountry','city','date','rsur','rgiv','rnie','rstreet','rnum','rcity','rzip','rprov'],CONTRACT:['surname','given','pass','street','num','zip','city','prov','date','company','companyid','companyaddr','director','role','duties','salary','contractdate'],CERT:['surname','given','pass','city','date','company','companyid','director','role','duties','salary','contractdate'],INV:['surname','given','pass','city','date','company','companyid','companyaddr','role','salary','invoiceno','invoiceperiod'],CV:['surname','given','email','city','cvprofile','cvexperience','cveducation','cvskills','cvlanguages']};
 let generating=false;
 for(const [fn,kind] of Object.entries({makeMIT:'MIT',makeMIF:'MIF',make10:'F10',make12:'F12',make14:'F14',makeContract:'CONTRACT',makeCertificate:'CERT',makeInvoice:'INV',makeCV:'CV'})){
 const original=window[fn];window[fn]=async function(){if(generating)return;try{for(const id of required[kind]){if(!v(id)){const el=$(id);el.focus();throw Error('Заполните поле: '+(el.previousElementSibling?.textContent||id))}}for(const id of ['date','dob','contractdate']){if(required[kind].includes(id)&&!/^\d{4}-\d{2}-\d{2}$/.test(v(id)))throw Error('Проверьте дату: '+id)}generating=true;document.querySelectorAll('.docs button').forEach(b=>b.disabled=true);$('status').textContent='Формирую PDF…';await original()}catch(e){$('status').textContent='Не удалось сформировать PDF: '+(e.message.includes("WinAnsi")?"Для MI-T, MI-F и форм 10/12/14 используйте латиницу в текстовых полях.":e.message);console.error(e)}finally{generating=false;document.querySelectorAll('.docs button').forEach(b=>b.disabled=false)}}}
